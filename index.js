@@ -28,8 +28,33 @@ function run() {
       const productsCollection = client
         .db("alibris")
         .collection("productCategories");
+      const usersCollection = client.db("alibris").collection("users");
 
-      // all categories product
+      // post users
+      app.post("/users", async (req, res) => {
+        try {
+          const user = req.body;
+          const result = await usersCollection.insertOne(user);
+          if (result) {
+            res.json({
+              status: true,
+              message: "user added successfully",
+            });
+          } else {
+            res.json({
+              status: true,
+              message: "user added successfully",
+            });
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
+
+      // send all categories product
       app.get("/categories", async (req, res) => {
         try {
           const products = await productsCollection.find({}).toArray();
@@ -55,34 +80,31 @@ function run() {
       });
 
       // send specific category product
-      app.get("/category/:id", async(req, res) => {
-
+      app.get("/category/:id", async (req, res) => {
         try {
-            const id = req.params.id;
-            const query = {_id: ObjectId(id)};
-            const category = await productsCollection.findOne(query);
-            if (category) {
-                res.json({
-                  status: true,
-                  message: "data got successfully",
-                  data: category,
-                });
-              } else {
-                res.json({
-                  status: false,
-                  message: "data got failed",
-                  data: {},
-                });
-              }
-            
-        } catch (error) {
+          const id = req.params.id;
+          const query = { _id: ObjectId(id) };
+          const category = await productsCollection.findOne(query);
+          if (category) {
             res.json({
-                status: false,
-                message: error.message,
-              });
+              status: true,
+              message: "data got successfully",
+              data: category,
+            });
+          } else {
+            res.json({
+              status: false,
+              message: "data got failed",
+              data: {},
+            });
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
         }
-      })
-
+      });
     }
   });
 }
