@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const app = express();
 
@@ -54,8 +54,34 @@ function run() {
         }
       });
 
-      // specific category product
-      app.get()
+      // send specific category product
+      app.get("/category/:id", async(req, res) => {
+
+        try {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)};
+            const category = await productsCollection.findOne(query);
+            if (category) {
+                res.json({
+                  status: true,
+                  message: "data got successfully",
+                  data: category,
+                });
+              } else {
+                res.json({
+                  status: false,
+                  message: "data got failed",
+                  data: {},
+                });
+              }
+            
+        } catch (error) {
+            res.json({
+                status: false,
+                message: error.message,
+              });
+        }
+      })
 
     }
   });
