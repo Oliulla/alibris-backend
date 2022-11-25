@@ -29,6 +29,7 @@ function run() {
         .db("alibris")
         .collection("productCategories");
       const usersCollection = client.db("alibris").collection("users");
+      const bookingsCollection = client.db("alibris").collection("bookings");
 
       // post users
       app.post("/users", async (req, res) => {
@@ -43,7 +44,7 @@ function run() {
           } else {
             res.json({
               status: true,
-              message: "user added successfully",
+              message: "user added failed",
             });
           }
         } catch (error) {
@@ -96,6 +97,30 @@ function run() {
               status: false,
               message: "data got failed",
               data: {},
+            });
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
+
+      // post booking product
+      app.post("/bookings", async (req, res) => {
+        try {
+          const bookingProduct = req.body;
+          const result = await bookingsCollection.insertOne(bookingProduct);
+          if (result) {
+            res.json({
+              status: true,
+              message: "successfully booked",
+            });
+          } else {
+            res.json({
+              status: true,
+              message: "booking failed",
             });
           }
         } catch (error) {
