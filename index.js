@@ -32,6 +32,34 @@ function run() {
       const usersCollection = client.db("alibris").collection("users");
       const bookingsCollection = client.db("alibris").collection("bookings");
 
+      // send user role based by email params
+      app.get("/user/:email", async(req, res) => {
+        try {
+          const email = req.params?.email;
+          const query = {email: email}
+          const user = await usersCollection.findOne(query);
+          const userRole = user?.role;
+          
+          if(user) {
+            res.json({
+              status: true,
+              message: 'user got successfully',
+              data: userRole
+            })
+          } else {
+            res.json({
+              status: false,
+              message: 'user got failed',
+            })
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          })
+        }
+      })
+
       // post users
       app.post("/users", async (req, res) => {
         try {
