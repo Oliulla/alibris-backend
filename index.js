@@ -20,7 +20,8 @@ const client = new MongoClient(uri, {
 function run() {
   client.connect((err) => {
     if (err) {
-      console.log(err);
+      console.log('database not connected:', err);
+
     } else {
       console.log("database connected");
 
@@ -106,6 +107,37 @@ function run() {
           });
         }
       });
+
+
+      // send bookings based on user
+      app.get("/bookings", async(req, res) => {
+        try {
+          const email = req.query.email;
+        const query = {
+          buyerEmail: email
+        }
+        const bookings = await bookingsCollection.find(query).toArray();
+        if(bookings) {
+          res.json({
+            status: true,
+            message: 'data got successfully',
+            data: bookings
+          })
+        } else {
+          res.json({
+            status: false,
+            message: 'data got failed',
+            data: []
+          })
+        }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          })
+        }
+      })
+
 
       // post booking product
       app.post("/bookings", async (req, res) => {
