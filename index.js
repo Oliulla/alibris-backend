@@ -34,6 +34,33 @@ function run() {
         .db("alibris")
         .collection("sellerProducts");
 
+        
+      // send all users for admin
+      app.get("/users", async(req, res) => {
+        try {
+          const users = await usersCollection.find({}).toArray();
+          if(users) {
+            res.json({
+              status: true,
+              message: "users got successfully",
+              data: users
+            })
+          }
+          else {
+            res.json({
+              status: false,
+              message: "users got failed",
+              data: []
+            })
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message
+          })
+        }
+      })
+
       // send user role based by email params
       app.get("/user/:email", async (req, res) => {
         try {
