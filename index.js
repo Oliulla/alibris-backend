@@ -195,7 +195,10 @@ function run() {
       app.put("/sellerProduct", async (req, res) => {
         try {
           const product = req.body;
-          const filter = { categoryName: product.categoryName, email: product?.email };
+          const filter = {
+            categoryName: product.categoryName,
+            email: product?.email,
+          };
           const options = { upsert: true };
           const updatedDoc = {
             $push: {
@@ -209,20 +212,46 @@ function run() {
             options
           );
 
-          if(result.acknowledged) {
+          if (result.acknowledged) {
             res.json({
               status: true,
               message: "added product successfully",
-              data: result
+              data: result,
             });
-          }
-          else {
+          } else {
             res.json({
               status: false,
-              message: "product failed",
-            })
+              message: "product added failed",
+            });
           }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
 
+      // send specific seller products
+      app.get("/sellerProduct", async (req, res) => {
+        try {
+          const email = req.query?.email;
+          const query = { email };
+          const myProducts = await sellerProductsCollection
+            .find(query)
+            .toArray();
+          if (myProducts) {
+            res.json({
+              status: true,
+              message: "product got successfully",
+              data: myProducts,
+            });
+          } else {
+            res.json({
+              status: false,
+              message: "product got failed",
+            });
+          }
         } catch (error) {
           res.json({
             status: false,
