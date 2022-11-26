@@ -20,8 +20,7 @@ const client = new MongoClient(uri, {
 function run() {
   client.connect((err) => {
     if (err) {
-      console.log('database not connected:', err);
-
+      console.log("database not connected:", err);
     } else {
       console.log("database connected");
 
@@ -31,34 +30,37 @@ function run() {
         .collection("productCategories");
       const usersCollection = client.db("alibris").collection("users");
       const bookingsCollection = client.db("alibris").collection("bookings");
+      const sellerProductsCollection = client
+        .db("alibris")
+        .collection("sellerProducts");
 
       // send user role based by email params
-      app.get("/user/:email", async(req, res) => {
+      app.get("/user/:email", async (req, res) => {
         try {
           const email = req.params?.email;
-          const query = {email: email}
+          const query = { email: email };
           const user = await usersCollection.findOne(query);
           const userRole = user?.role;
-          
-          if(user) {
+
+          if (user) {
             res.json({
               status: true,
-              message: 'user got successfully',
-              data: userRole
-            })
+              message: "user got successfully",
+              data: userRole,
+            });
           } else {
             res.json({
               status: false,
-              message: 'user got failed',
-            })
+              message: "user got failed",
+            });
           }
         } catch (error) {
           res.json({
             status: false,
             message: error.message,
-          })
+          });
         }
-      })
+      });
 
       // post users
       app.post("/users", async (req, res) => {
@@ -136,36 +138,34 @@ function run() {
         }
       });
 
-
       // send bookings based on user
-      app.get("/bookings", async(req, res) => {
+      app.get("/bookings", async (req, res) => {
         try {
           const email = req.query.email;
-        const query = {
-          buyerEmail: email
-        }
-        const bookings = await bookingsCollection.find(query).toArray();
-        if(bookings) {
-          res.json({
-            status: true,
-            message: 'data got successfully',
-            data: bookings
-          })
-        } else {
-          res.json({
-            status: false,
-            message: 'data got failed',
-            data: []
-          })
-        }
+          const query = {
+            buyerEmail: email,
+          };
+          const bookings = await bookingsCollection.find(query).toArray();
+          if (bookings) {
+            res.json({
+              status: true,
+              message: "data got successfully",
+              data: bookings,
+            });
+          } else {
+            res.json({
+              status: false,
+              message: "data got failed",
+              data: [],
+            });
+          }
         } catch (error) {
           res.json({
             status: false,
             message: error.message,
-          })
+          });
         }
-      })
-
+      });
 
       // post booking product
       app.post("/bookings", async (req, res) => {
@@ -190,6 +190,48 @@ function run() {
           });
         }
       });
+
+      // seller product save to db
+      app.put("/sellerProduct", async (req, res) => {
+        try {
+          const product = req.body;
+          const filter = { categoryName: product.categoryName, email: product?.email };
+          const options = { upsert: true };
+          const updatedDoc = {
+            $push: {
+              products: product.products[0],
+            },
+          };
+
+          const result = await sellerProductsCollection.updateOne(
+            filter,
+            updatedDoc,
+            options
+          );
+
+          if(result.acknowledged) {
+            res.json({
+              status: true,
+              message: "added product successfully",
+              data: result
+            });
+          }
+          else {
+            res.json({
+              status: false,
+              message: "product failed",
+            })
+          }
+
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
+
+      // end
     }
   });
 }
