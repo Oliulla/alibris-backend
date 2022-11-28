@@ -33,33 +33,35 @@ function run() {
       const sellerProductsCollection = client
         .db("alibris")
         .collection("sellerProducts");
+        const allProductsCollection = client.db('alibris').collection('products');
 
-        
+      
+      
+
       // send all users for admin
-      app.get("/users", async(req, res) => {
+      app.get("/users", async (req, res) => {
         try {
           const users = await usersCollection.find({}).toArray();
-          if(users) {
+          if (users) {
             res.json({
               status: true,
               message: "users got successfully",
-              data: users
-            })
-          }
-          else {
+              data: users,
+            });
+          } else {
             res.json({
               status: false,
               message: "users got failed",
-              data: []
-            })
+              data: [],
+            });
           }
         } catch (error) {
           res.json({
             status: false,
-            message: error.message
-          })
+            message: error.message,
+          });
         }
-      })
+      });
 
       // send user role based by email params
       app.get("/user/:email", async (req, res) => {
@@ -90,10 +92,22 @@ function run() {
       });
 
       // post users
-      app.post("/users", async (req, res) => {
+      app.put("/users", async (req, res) => {
         try {
           const user = req.body;
-          const result = await usersCollection.insertOne(user);
+          const filter = { email: user.email };
+          const options = { upsert: true };
+          const updatedDoc = {
+            $set: {
+              name: user?.name,
+              role: user?.role,
+            },
+          };
+          const result = await usersCollection.updateOne(
+            filter,
+            updatedDoc,
+            options
+          );
           if (result) {
             res.json({
               status: true,
@@ -113,10 +127,52 @@ function run() {
         }
       });
 
+      // seller product save to db
+      app.put("/categories", async (req, res) => {
+        try {
+          const product = req.body;
+          const filter = {
+            categoryName: product.categoryName,
+            email: product.email
+          };
+
+          const options = { upsert: true };
+          const updatedDoc = {
+            $push: {
+              products: product.products[0]
+            },
+          };
+
+          const result = await allProductsCollection.updateOne(
+            filter,
+            updatedDoc,
+            options
+          );
+
+          if (result.acknowledged) {
+            res.json({
+              status: true,
+              message: "added product successfully",
+              data: result,
+            });
+          } else {
+            res.json({
+              status: false,
+              message: "product added failed",
+            });
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
+
       // send all categories product
       app.get("/categories", async (req, res) => {
         try {
-          const products = await productsCollection.find({}).toArray();
+          const products = await allProductsCollection.find({}).toArray();
           if (products) {
             res.json({
               status: true,
@@ -143,7 +199,7 @@ function run() {
         try {
           const id = req.params.id;
           const query = { _id: ObjectId(id) };
-          const category = await productsCollection.findOne(query);
+          const category = await allProductsCollection.findOne(query);
           if (category) {
             res.json({
               status: true,
@@ -155,6 +211,34 @@ function run() {
               status: false,
               message: "data got failed",
               data: {},
+            });
+          }
+        } catch (error) {
+          res.json({
+            status: false,
+            message: error.message,
+          });
+        }
+      });
+
+      // send specific seller products
+      app.get("/myproducts", async (req, res) => {
+        try {
+          const email = req.query?.email;
+          const query = { email };
+          const myProducts = await allProductsCollection
+            .find(query)
+            .toArray();
+          if (myProducts) {
+            res.json({
+              status: true,
+              message: "product got successfully",
+              data: myProducts,
+            });
+          } else {
+            res.json({
+              status: false,
+              message: "product got failed",
             });
           }
         } catch (error) {
@@ -218,74 +302,75 @@ function run() {
         }
       });
 
-      // seller product save to db
-      app.put("/sellerProduct", async (req, res) => {
-        try {
-          const product = req.body;
-          const filter = {
-            categoryName: product.categoryName,
-            email: product?.email,
-          };
-          const options = { upsert: true };
-          const updatedDoc = {
-            $push: {
-              products: product.products[0],
-            },
-          };
+      // // seller product save to db
+      // app.put("/categories", async (req, res) => {
+      //   try {
+      //     const product = req.body;
+      //     const filter = {
+      //       categoryName: product.categoryName,
+      //     };
+      //     const options = { upsert: true };
+      //     const updatedDoc = {
+      //       $push: {
+      //         products: product.products[0],
+      //         // modified
+      //         email: product?.email[0],
+      //       },
+      //     };
 
-          const result = await sellerProductsCollection.updateOne(
-            filter,
-            updatedDoc,
-            options
-          );
+      //     const result = await allProductsCollection.updateOne(
+      //       filter,
+      //       updatedDoc,
+      //       options
+      //     );
 
-          if (result.acknowledged) {
-            res.json({
-              status: true,
-              message: "added product successfully",
-              data: result,
-            });
-          } else {
-            res.json({
-              status: false,
-              message: "product added failed",
-            });
-          }
-        } catch (error) {
-          res.json({
-            status: false,
-            message: error.message,
-          });
-        }
-      });
+      //     if (result.acknowledged) {
+      //       res.json({
+      //         status: true,
+      //         message: "added product successfully",
+      //         data: result,
+      //       });
+      //     } else {
+      //       res.json({
+      //         status: false,
+      //         message: "product added failed",
+      //       });
+      //     }
+      //   } catch (error) {
+      //     res.json({
+      //       status: false,
+      //       message: error.message,
+      //     });
+      //   }
+      // });
 
       // send specific seller products
-      app.get("/sellerProduct", async (req, res) => {
-        try {
-          const email = req.query?.email;
-          const query = { email };
-          const myProducts = await sellerProductsCollection
-            .find(query)
-            .toArray();
-          if (myProducts) {
-            res.json({
-              status: true,
-              message: "product got successfully",
-              data: myProducts,
-            });
-          } else {
-            res.json({
-              status: false,
-              message: "product got failed",
-            });
-          }
-        } catch (error) {
-          res.json({
-            status: false,
-            message: error.message,
-          });
-        }
-      });
+      // app.get("/sellerProduct", async (req, res) => {
+      //   try {
+      //     const email = req.query?.email;
+      //     const query = { email };
+      //     const myProducts = await sellerProductsCollection
+      //       .find(query)
+      //       .toArray();
+      //     if (myProducts) {
+      //       res.json({
+      //         status: true,
+      //         message: "product got successfully",
+      //         data: myProducts,
+      //       });
+      //     } else {
+      //       res.json({
+      //         status: false,
+      //         message: "product got failed",
+      //       });
+      //     }
+      //   } catch (error) {
+      //     res.json({
+      //       status: false,
+      //       message: error.message,
+      //     });
+      //   }
+      // });
 
       // end
     }
