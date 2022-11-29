@@ -17,12 +17,13 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+
 function run() {
-  client.connect((err) => {
-    if (err) {
-      console.log("database not connected:", err);
-    } else {
-      console.log("database connected");
+  // client.connect((err) => {
+  //   if (err) {
+  //     console.log("database not connected:", err);
+  //   } else {
+  //     console.log("database connected");
 
       // db collections
       // const productsCollection = client
@@ -476,8 +477,8 @@ function run() {
       // });
 
       // end
-    }
-  });
+    // }
+  // });
 }
 run();
 
