@@ -20,9 +20,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // db collections
-    const productCategories = client.db("alibris").collection("productCategories");
+    const productCategories = client
+      .db("alibris")
+      .collection("productCategories");
     const usersCollection = client.db("alibris").collection("users");
     const bookingsCollection = client.db("alibris").collection("bookings");
+    const wishlistProductCollections = client
+      .db("alibris")
+      .collection("wishlists");
     const allProductsCollection = client.db("alibris").collection("products");
     const advertiseProductsCollection = client
       .db("alibris")
@@ -100,10 +105,23 @@ async function run() {
     // send buyer role
     app.get("/users/buyer/:email", async (req, res) => {
       const email = req.params.email;
+      console.log(email)
       const query = { email };
       const user = await usersCollection.findOne(query);
+      console.log(user);
       res.send({ isBuyer: user?.role === "buyer" });
     });
+
+  //   app.get('/jwt', async (req, res) => {
+  //     const email = req.query.email;
+  //     const query = { email: email };
+  //     const user = await usersCollection.findOne(query);
+  //     if (user) {
+  //         const token = jwt.sign({ email }, process.env.ACCESS_TOKEN)
+  //         return res.send({ accessToken: token });
+  //     }
+  //     res.status(403).send({ accessToken: '' })
+  // });
 
     // send all sellers
     app.get("/sellers", async (req, res) => {
@@ -276,13 +294,33 @@ async function run() {
     //   }
     // });
 
+    // temporary to update verify status of sellers
+    app.put("/sellerVerified/:email", async (req, res) => {
+      const sellerEmail = req.params.email;
+      const filter = { email: sellerEmail };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          status: "Verified",
+        },
+      };
+      const result = await allProductsCollection.updateMany(
+        filter,
+        updatedDoc,
+        options
+      );
+      res.send(result);
+    });
+
     // send specific category product
     app.get("/category/:categoryName", async (req, res) => {
       try {
         const productCategory = req.params.categoryName;
         const products = await allProductsCollection.find({}).toArray();
         // console.log(products)
-        const categoryProducts = products.filter(product => product.categoryName === productCategory);
+        const categoryProducts = products.filter(
+          (product) => product.categoryName === productCategory
+        );
         // console.log(categoryProducts)
         if (categoryProducts) {
           res.json({
@@ -312,7 +350,7 @@ async function run() {
         // console.log(email);
         const allproducts = await allProductsCollection.find({}).toArray();
         // console.log(allproducts);
-        const myProd = allproducts.filter((prod) => prod.email === email );
+        const myProd = allproducts.filter((prod) => prod.email === email);
         // console.log(myProd);
 
         if (myProd) {
@@ -335,14 +373,14 @@ async function run() {
       }
     });
 
-    app.delete("/myproducts/:id", async(req, res) => {
+    app.delete("/myproducts/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: ObjectId(id)};
+      const query = { _id: ObjectId(id) };
       const result = await allProductsCollection.deleteOne(query);
-      if(result.deletedCount) {
+      if (result.deletedCount) {
         res.send(result);
       }
-    })
+    });
 
     // advertise products send
     app.get("/advertiseProducts", async (req, res) => {
@@ -441,6 +479,51 @@ async function run() {
           status: false,
           message: error.message,
         });
+      }
+    });
+
+    // post wishlist products
+    app.post("/mywishlist", async (req, res) => {
+      try {
+        const wishlistProduct = req.body;
+        const result = await wishlistProductCollections.insertOne(
+          wishlistProduct
+        );
+        if (result) {
+          res.json({
+            status: true,
+            message: "successfully added in wishlist",
+          });
+        } else {
+          res.json({
+            status: true,
+            message: "Failed to add in wishlist",
+          });
+        }
+      } catch (error) {
+        res.json({
+          status: false,
+          message: error.message,
+        });
+      }
+    });
+
+    app.get("/myWishlists/:currentEmail", async (req, res) => {
+      try {
+        const email = req.params?.currentEmail;
+        const myWishlists = await wishlistProductCollections.find({email}).toArray();
+        // console.log(myWishlists);
+        if (myWishlists) {
+          res.json({
+            status: true,
+            message: "My Wishlists got successfully",
+            data: myWishlists,
+          });
+        } else {
+          res.json({ status: false, message: "data got failed", data: [] });
+        }
+      } catch (error) {
+        res.json({ status: false, message: error.message });
       }
     });
 
