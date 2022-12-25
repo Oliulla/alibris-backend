@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require('jsonwebtoken');
 require("dotenv").config();
 const app = express();
 
@@ -16,6 +17,25 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  // console.log("inside verifyjwt", authHeader);
+  if(!authHeader) {
+    return res.status(401).send('unauthorized access');
+  }
+  const token = authHeader.split(' ')[1];
+  // console.log(token);
+  jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded) {
+    if (err) {
+      // console.log(err)
+      return res.status(403).send({ message: 'forbidden access' })
+    }
+
+    req.decoded = decoded;
+    next();
+  })
+}
 
 async function run() {
   try {
@@ -57,6 +77,19 @@ async function run() {
         });
       }
     });
+
+    // authorization with jwt
+    app.get('/jwt', async(req, res) => {
+      const email = req.query.email;
+      const query = {email: email}
+      const user = await usersCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN)
+        return res.send({ accessToken: token });
+    }
+      // console.log(result);
+      res.status(403).send({ accessToken: '' });
+    })
 
     // send user role based by email params
     app.get("/user/:email", async (req, res) => {
@@ -105,23 +138,12 @@ async function run() {
     // send buyer role
     app.get("/users/buyer/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email)
+      // console.log(email)
       const query = { email };
       const user = await usersCollection.findOne(query);
-      console.log(user);
+      // console.log(user);
       res.send({ isBuyer: user?.role === "buyer" });
     });
-
-  //   app.get('/jwt', async (req, res) => {
-  //     const email = req.query.email;
-  //     const query = { email: email };
-  //     const user = await usersCollection.findOne(query);
-  //     if (user) {
-  //         const token = jwt.sign({ email }, process.env.ACCESS_TOKEN)
-  //         return res.send({ accessToken: token });
-  //     }
-  //     res.status(403).send({ accessToken: '' })
-  // });
 
     // send all sellers
     app.get("/sellers", async (req, res) => {
@@ -430,9 +452,16 @@ async function run() {
     // });
 
     // send bookings based on user
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyJWT, async (req, res) => {
       try {
         const email = req.query.email;
+        // console.log(req.headers.authorization);
+        const decodedEmail = req.decoded.email;
+        // console.log(decodedEmail, email)
+
+        if (email !== decodedEmail) {
+          return res.status(403).json({ message: 'forbidden access' });
+      }
         const query = {
           buyerEmail: email,
         };
