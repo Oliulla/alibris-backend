@@ -366,13 +366,25 @@ async function run() {
     });
 
     // send specific seller products
-    app.get("/myproducts", async (req, res) => {
+    app.get("/myproducts", verifyJWT, async (req, res) => {
       try {
         const email = req.query?.email;
         // console.log(email);
-        const allproducts = await allProductsCollection.find({}).toArray();
+
+        // console.log(req.headers.authorization);
+        const decodedEmail = req.decoded.email;
+        // console.log(decodedEmail, email)
+
+        if (email !== decodedEmail) {
+          return res.status(403).json({ message: 'forbidden access' });
+      }
+        const query = {
+          email: email,
+        };
+        
+        const myProd = await allProductsCollection.find(query).toArray();
         // console.log(allproducts);
-        const myProd = allproducts.filter((prod) => prod.email === email);
+        // const myProd = allproducts.filter((prod) => prod.email === email);
         // console.log(myProd);
 
         if (myProd) {
@@ -537,9 +549,15 @@ async function run() {
       }
     });
 
-    app.get("/myWishlists/:currentEmail", async (req, res) => {
+    app.get("/myWishlists/:currentEmail", verifyJWT, async (req, res) => {
       try {
         const email = req.params?.currentEmail;
+        const decodedEmail = req.decoded.email;
+        // console.log(decodedEmail, email)
+
+        if (email !== decodedEmail) {
+          return res.status(403).json({ message: 'forbidden access' });
+      }
         const myWishlists = await wishlistProductCollections.find({email}).toArray();
         // console.log(myWishlists);
         if (myWishlists) {
