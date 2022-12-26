@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const app = express();
 
@@ -21,20 +21,20 @@ const client = new MongoClient(uri, {
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   // console.log("inside verifyjwt", authHeader);
-  if(!authHeader) {
-    return res.status(401).send('unauthorized access');
+  if (!authHeader) {
+    return res.status(401).send("unauthorized access");
   }
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(" ")[1];
   // console.log(token);
-  jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded) {
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
     if (err) {
       // console.log(err)
-      return res.status(403).send({ message: 'forbidden access' })
+      return res.status(403).send({ message: "forbidden access" });
     }
 
     req.decoded = decoded;
     next();
-  })
+  });
 }
 
 async function run() {
@@ -79,17 +79,17 @@ async function run() {
     });
 
     // authorization with jwt
-    app.get('/jwt', async(req, res) => {
+    app.get("/jwt", async (req, res) => {
       const email = req.query.email;
-      const query = {email: email}
+      const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user) {
-        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN)
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN);
         return res.send({ accessToken: token });
-    }
+      }
       // console.log(result);
-      res.status(403).send({ accessToken: '' });
-    })
+      res.status(403).send({ accessToken: "" });
+    });
 
     // send user role based by email params
     app.get("/user/:email", async (req, res) => {
@@ -257,7 +257,7 @@ async function run() {
         const product = req.body;
         // console.log(product);
         const result = await allProductsCollection.insertOne(product);
-        console.log(result);
+        // console.log(result);
         if (result) {
           res.json({
             status: true,
@@ -275,6 +275,42 @@ async function run() {
           status: false,
           message: error.message,
         });
+      }
+    });
+
+    // send data based on user search
+    app.get("/categories/products/:searchWord", async (req, res) => {
+      try {
+        const searchText = req.params?.searchWord;
+        // const query = {
+        //   categoryName: searchText
+        // }
+        // const query2 = {
+        //   bookName: searchText
+        // }
+        const allProducts = await allProductsCollection.find({}).toArray();
+        // const allProducts1 = await allProductsCollection.find(query2).toArray();
+
+        // console.log(allProducts);
+        const products = allProducts.filter(
+          (prod) =>
+            prod.categoryName.toLowerCase() === searchText.toLowerCase() ||
+            prod.bookName.toLowerCase() === searchText.toLowerCase()
+        );
+
+        // console.log(products);
+
+        if (products) {
+          res.json({
+            status: true,
+            message: "products got successfully",
+            data: products,
+          });
+        } else {
+          res.json({ status: false, message: "data got failed", data: [] });
+        }
+      } catch (error) {
+        res.json({ status: false, message: error.message });
       }
     });
 
@@ -376,12 +412,12 @@ async function run() {
         // console.log(decodedEmail, email)
 
         if (email !== decodedEmail) {
-          return res.status(403).json({ message: 'forbidden access' });
-      }
+          return res.status(403).json({ message: "forbidden access" });
+        }
         const query = {
           email: email,
         };
-        
+
         const myProd = await allProductsCollection.find(query).toArray();
         // console.log(allproducts);
         // const myProd = allproducts.filter((prod) => prod.email === email);
@@ -472,8 +508,8 @@ async function run() {
         // console.log(decodedEmail, email)
 
         if (email !== decodedEmail) {
-          return res.status(403).json({ message: 'forbidden access' });
-      }
+          return res.status(403).json({ message: "forbidden access" });
+        }
         const query = {
           buyerEmail: email,
         };
@@ -556,9 +592,11 @@ async function run() {
         // console.log(decodedEmail, email)
 
         if (email !== decodedEmail) {
-          return res.status(403).json({ message: 'forbidden access' });
-      }
-        const myWishlists = await wishlistProductCollections.find({email}).toArray();
+          return res.status(403).json({ message: "forbidden access" });
+        }
+        const myWishlists = await wishlistProductCollections
+          .find({ email })
+          .toArray();
         // console.log(myWishlists);
         if (myWishlists) {
           res.json({
