@@ -4,6 +4,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const app = express();
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 const port = process.env.PORT || "5000";
 
@@ -52,6 +53,9 @@ async function run() {
     const advertiseProductsCollection = client
       .db("alibris")
       .collection("advertiseProducts");
+    const paymentsCollection = client
+      .db("alibris")
+      .collection("payments");
 
     // send all users for admin
     app.get("/users", async (req, res) => {
@@ -534,6 +538,64 @@ async function run() {
         });
       }
     });
+
+    // send single booking by id for payment
+    app.get("/bookings/payment/:id", async (req, res) => {
+      try {
+        const id = req.params?.id;
+        const query = { _id: ObjectId(id) };
+        const booking = await bookingsCollection.findOne(query);
+        res.send(booking);
+      } catch (error) {
+        console.log(error.message);
+        res.send(error.message);
+      }
+    });
+
+    // payment intent with stripe
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = parseInt(price) * 100 * 80;
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        "payment_method_types": [
+          "card"
+        ],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    // save payment info to db
+    app.post("/payments", async(req, res) => {
+      try {
+        const payment = req.body;
+        // console.log(payment);
+        const id = payment.bookingId;
+        // console.log(id);
+        const filter = {_id: ObjectId(id)};
+        // const options = {upsert: true};
+        const updatedDoc = {
+          $set: {
+            paid: true,
+            transactionId: payment.transactionId
+          }
+        }
+        const result = await paymentsCollection.insertOne(payment);
+        const bookingUpdate = await bookingsCollection.updateOne(filter, updatedDoc);
+        const updateWishlist = await wishlistProductCollections.updateOne(filter, updatedDoc);
+        // console.log(id, bookingUpdate);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+        res.send(error)
+      }
+
+    })
 
     // post booking product
     app.post("/bookings", async (req, res) => {
