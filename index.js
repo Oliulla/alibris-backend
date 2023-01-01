@@ -196,6 +196,7 @@ async function run() {
           updatedDoc,
           options
         );
+        // res.send(result)
         if (result) {
           res.json({
             status: true,
@@ -295,7 +296,7 @@ async function run() {
         const allProducts = await allProductsCollection.find({}).toArray();
         // const allProducts1 = await allProductsCollection.find(query2).toArray();
 
-        // console.log(allProducts);
+        console.log("allproducts", allProducts);
         const products = allProducts.filter(
           (prod) =>
             prod.categoryName.toLowerCase() === searchText.toLowerCase() ||
@@ -360,7 +361,7 @@ async function run() {
     app.put("/sellerVerified/:email", async (req, res) => {
       const sellerEmail = req.params.email;
       const filter = { email: sellerEmail };
-      const options = { upsert: true };
+      const options = { upsert: false };
       const updatedDoc = {
         $set: {
           status: "Verified",
@@ -371,6 +372,7 @@ async function run() {
         updatedDoc,
         options
       );
+      const result2 = await usersCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
@@ -468,7 +470,15 @@ async function run() {
     app.post("/advertiseProducts", async (req, res) => {
       const product = req.body;
       // console.log(product)
+      const filter = {_id: ObjectId(product._id)};
+      const options = {upsert: false};
+      const updatedDoc = {
+        $set: {
+          advertised: true
+        }
+      }
       const result = await advertiseProductsCollection.insertOne(product);
+      const result2 = await allProductsCollection.updateOne(filter, updatedDoc, options);
       res.send(result);
     });
 
@@ -579,16 +589,23 @@ async function run() {
         // console.log(id);
         const filter = {_id: ObjectId(id)};
         // const options = {upsert: true};
+        const filter2 = {_id: ObjectId(payment.productId)};
         const updatedDoc = {
           $set: {
             paid: true,
             transactionId: payment.transactionId
           }
         }
+        const updatedDoc2 = {
+          $set: {
+            isAvailable: false,
+          }
+        }
         const result = await paymentsCollection.insertOne(payment);
         const bookingUpdate = await bookingsCollection.updateOne(filter, updatedDoc);
-        const updateWishlist = await wishlistProductCollections.updateOne(filter, updatedDoc);
-        // console.log(id, bookingUpdate);
+        // const updateWishlist = await wishlistProductCollections.updateOne(filter2, updatedDoc, {upsert: false});
+        const updateProductsCollection = await allProductsCollection.updateOne(filter2, updatedDoc2);
+        // console.log(filter2, updateProductsCollection);
         res.send(result);
       } catch (error) {
         console.log(error);
